@@ -1,0 +1,386 @@
+import {
+  CreateStartUpPageContainer,
+  ListContainerProperty,
+  ListItemContainerProperty,
+  OsEventTypeList,
+  RebuildPageContainer,
+  TextContainerProperty,
+  type EvenAppBridge,
+  type EvenHubEvent,
+} from '@evenrealities/even_hub_sdk'
+import { appendEventLog } from '../_shared/log'
+import { getState, sendCommand, type VehicleState } from './api'
+
+const DISPLAY_WIDTH = 576
+const DISPLAY_HEIGHT = 288
+const SWIPE_COOLDOWN_MS = 300
+
+const HEADER_HEIGHT = 30
+const FOOTER_HEIGHT = 34
+const BODY_HEIGHT = DISPLAY_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT - 8
+
+type Screen = 'dashboard' | 'actions' | 'loading' | 'confirmation'
+
+type State = {
+  screen: Screen
+  startupRendered: boolean
+  lastSwipeTime: number
+  vehicle: VehicleState | null
+  confirmationMessage: string
+}
+
+const state: State = {
+  screen: 'dashboard',
+  startupRendered: false,
+  lastSwipeTime: 0,
+  vehicle: null,
+  confirmationMessage: '',
+}
+
+let bridge: EvenAppBridge | null = null
+
+const COMMANDS = [
+  { label: 'Unlock', cmd: 'unlock' },
+  { label: 'Lock', cmd: 'lock' },
+  { label: 'Start climate', cmd: 'start_climate' },
+  { label: 'Stop climate', cmd: 'stop_climate' },
+  { label: 'Open frunk', cmd: 'open_front_trunk' },
+  { label: 'Open trunk', cmd: 'open_rear_trunk' },
+  { label: 'Flash lights', cmd: 'flash_lights' },
+  { label: 'Honk', cmd: 'honk' },
+]
+
+// --- Event normalisation (from itsypad) ---
+
+function resolveEventType(event: EvenHubEvent): OsEventTypeList | undefined {
+  const raw =
+    event.listEvent?.eventType ??
+    event.textEvent?.eventType ??
+    event.sysEvent?.eventType ??
+    ((event.jsonData ?? {}) as Record<string, unknown>).eventType ??
+    ((event.jsonData ?? {}) as Record<string, unknown>).event_type ??
+    ((event.jsonData ?? {}) as Record<string, unknown>).Event_Type ??
+    ((event.jsonData ?? {}) as Record<string, unknown>).type
+
+  if (typeof raw === 'number') {
+    switch (raw) {
+      case 0: return OsEventTypeList.CLICK_EVENT
+      case 1: return OsEventTypeList.SCROLL_TOP_EVENT
+      case 2: return OsEventTypeList.SCROLL_BOTTOM_EVENT
+      case 3: return OsEventTypeList.DOUBLE_CLICK_EVENT
+      default: return undefined
+    }
+  }
+
+  if (typeof raw === 'string') {
+    const v = raw.toUpperCase()
+    if (v.includes('DOUBLE')) return OsEventTypeList.DOUBLE_CLICK_EVENT
+    if (v.includes('CLICK')) return OsEventTypeList.CLICK_EVENT
+    if (v.includes('SCROLL_TOP') || v.includes('UP')) return OsEventTypeList.SCROLL_TOP_EVENT
+    if (v.includes('SCROLL_BOTTOM') || v.includes('DOWN')) return OsEventTypeList.SCROLL_BOTTOM_EVENT
+  }
+
+  if (event.listEvent || event.textEvent || event.sysEvent) return OsEventTypeList.CLICK_EVENT
+
+  return undefined
+}
+
+function swipeThrottleOk(): boolean {
+  const now = Date.now()
+  if (now - state.lastSwipeTime < SWIPE_COOLDOWN_MS) return false
+  state.lastSwipeTime = now
+  return true
+}
+
+// --- Rendering helpers ---
+
+async function rebuildPage(config: {
+  containerTotalNum: number
+  textObject?: TextContainerProperty[]
+  listObject?: ListContainerProperty[]
+}): Promise<void> {
+  if (!bridge) return
+
+  if (!state.startupRendered) {
+    await bridge.createStartUpPageContainer(new CreateStartUpPageContainer(config))
+    state.startupRendered = true
+    return
+  }
+
+  await bridge.rebuildPageContainer(new RebuildPageContainer(config))
+}
+
+function batteryBar(level: number): string {
+  const filled = Math.round(level / 10)
+  return '\u2501'.repeat(filled) + '\u2500'.repeat(10 - filled)
+}
+
+// --- Dashboard screen (3 text containers) ---
+
+async function showDashboard(): Promise<void> {
+  state.screen = 'dashboard'
+
+  if (!state.vehicle) {
+    await rebuildPage({
+      containerTotalNum: 1,
+      textObject: [
+        new TextContainerProperty({
+          containerID: 1,
+          containerName: 'loading',
+          content: 'Loading vehicle state...',
+          xPosition: 0,
+          yPosition: 0,
+          width: DISPLAY_WIDTH,
+          height: DISPLAY_HEIGHT,
+          isEventCapture: 1,
+          paddingLength: 4,
+        }),
+      ],
+    })
+    return
+  }
+
+  const v = state.vehicle
+  const lockIcon = v.locked ? '\uD83D\uDD12' : '\uD83D\uDD13'
+  const headerText = `${v.batteryLevel}% ${batteryBar(v.batteryLevel)} ${v.range}km  ${lockIcon}`
+
+  const bodyLines = [
+    `Climate: ${v.climateOn ? 'ON' : 'OFF'}    Cabin: ${v.insideTemp}\u00B0C`,
+    `Charging: ${v.chargingState}`,
+    `Sentry: ${v.sentryMode ? 'ON' : 'OFF'}`,
+  ]
+
+  await rebuildPage({
+    containerTotalNum: 3,
+    textObject: [
+      new TextContainerProperty({
+        containerID: 1,
+        containerName: 'header',
+        content: headerText,
+        xPosition: 0,
+        yPosition: 0,
+        width: DISPLAY_WIDTH,
+        height: HEADER_HEIGHT,
+        isEventCapture: 0,
+        paddingLength: 4,
+      }),
+      new TextContainerProperty({
+        containerID: 2,
+        containerName: 'body',
+        content: bodyLines.join('\n'),
+        xPosition: 0,
+        yPosition: HEADER_HEIGHT + 4,
+        width: DISPLAY_WIDTH,
+        height: BODY_HEIGHT,
+        isEventCapture: 1,
+        paddingLength: 4,
+        borderWidth: 1,
+        borderColor: 5,
+        borderRdaius: 4,
+      }),
+      new TextContainerProperty({
+        containerID: 3,
+        containerName: 'footer',
+        content: 'tap=actions  dbl=refresh',
+        xPosition: 0,
+        yPosition: HEADER_HEIGHT + BODY_HEIGHT + 8,
+        width: DISPLAY_WIDTH,
+        height: FOOTER_HEIGHT,
+        isEventCapture: 0,
+        paddingLength: 4,
+      }),
+    ],
+  })
+
+  appendEventLog(`Dashboard: ${v.batteryLevel}% ${v.range}km`)
+}
+
+// --- Actions menu (1 text header + 1 list) ---
+
+async function showActions(): Promise<void> {
+  state.screen = 'actions'
+
+  const list = new ListContainerProperty({
+    containerID: 10,
+    containerName: 'actions-list',
+    xPosition: 0,
+    yPosition: 0,
+    width: DISPLAY_WIDTH,
+    height: DISPLAY_HEIGHT,
+    borderWidth: 1,
+    borderColor: 13,
+    borderRdaius: 6,
+    paddingLength: 5,
+    isEventCapture: 1,
+    itemContainer: new ListItemContainerProperty({
+      itemCount: COMMANDS.length,
+      itemWidth: 560,
+      isItemSelectBorderEn: 1,
+      itemName: COMMANDS.map((c) => c.label),
+    }),
+  })
+
+  await rebuildPage({
+    containerTotalNum: 1,
+    listObject: [list],
+  })
+
+  appendEventLog('Actions: showing menu')
+}
+
+// --- Loading screen ---
+
+async function showLoading(label: string): Promise<void> {
+  state.screen = 'loading'
+
+  await rebuildPage({
+    containerTotalNum: 1,
+    textObject: [
+      new TextContainerProperty({
+        containerID: 1,
+        containerName: 'loading',
+        content: `Sending: ${label}...`,
+        xPosition: 0,
+        yPosition: 0,
+        width: DISPLAY_WIDTH,
+        height: DISPLAY_HEIGHT,
+        isEventCapture: 0,
+        paddingLength: 4,
+      }),
+    ],
+  })
+}
+
+// --- Confirmation screen ---
+
+async function showConfirmation(message: string): Promise<void> {
+  state.screen = 'confirmation'
+  state.confirmationMessage = message
+
+  await rebuildPage({
+    containerTotalNum: 1,
+    textObject: [
+      new TextContainerProperty({
+        containerID: 1,
+        containerName: 'confirmation',
+        content: message,
+        xPosition: 0,
+        yPosition: 0,
+        width: DISPLAY_WIDTH,
+        height: DISPLAY_HEIGHT,
+        isEventCapture: 1,
+        paddingLength: 4,
+      }),
+    ],
+  })
+
+  setTimeout(() => {
+    if (state.screen === 'confirmation') {
+      void showDashboard()
+    }
+  }, 2000)
+}
+
+// --- Command execution ---
+
+async function executeCommand(index: number): Promise<void> {
+  const command = COMMANDS[index]
+  if (!command) return
+
+  await showLoading(command.label)
+
+  const result = await sendCommand(command.cmd)
+  if (result.ok) {
+    appendEventLog(`Command: ${command.label} succeeded`)
+    await showConfirmation(command.label + ' \u2013 OK')
+  } else {
+    appendEventLog(`Command: ${command.label} failed: ${result.error}`)
+    await showConfirmation(`Failed: ${result.error}`)
+  }
+}
+
+// --- Data refresh ---
+
+export async function refreshState(): Promise<void> {
+  try {
+    state.vehicle = await getState()
+    appendEventLog('State: refreshed')
+  } catch (err) {
+    console.error('[tesla] refreshState failed', err)
+    appendEventLog(`State: refresh failed: ${err instanceof Error ? err.message : String(err)}`)
+  }
+
+  if (bridge && state.screen === 'dashboard') {
+    await showDashboard()
+  }
+}
+
+// --- Event dispatching ---
+
+function onEvenHubEvent(event: EvenHubEvent): void {
+  const eventType = resolveEventType(event)
+  appendEventLog(`Event: type=${String(eventType)} screen=${state.screen}`)
+
+  switch (state.screen) {
+    case 'dashboard':
+      void handleDashboardEvent(eventType)
+      break
+    case 'actions':
+      void handleActionsEvent(event, eventType)
+      break
+    case 'confirmation':
+      void handleConfirmationEvent()
+      break
+  }
+}
+
+// --- Screen event handlers ---
+
+async function handleDashboardEvent(eventType: OsEventTypeList | undefined): Promise<void> {
+  if (eventType === OsEventTypeList.CLICK_EVENT) {
+    await showActions()
+    return
+  }
+
+  if (eventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
+    if (!swipeThrottleOk()) return
+    await refreshState()
+    return
+  }
+}
+
+async function handleActionsEvent(event: EvenHubEvent, eventType: OsEventTypeList | undefined): Promise<void> {
+  if (eventType === OsEventTypeList.CLICK_EVENT) {
+    const le = event.listEvent
+    let idx = le?.currentSelectItemIndex
+    if (typeof idx !== 'number' || idx < 0) idx = 0
+    if (idx >= COMMANDS.length) return
+
+    await executeCommand(idx)
+    return
+  }
+
+  if (eventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
+    await showDashboard()
+    return
+  }
+}
+
+async function handleConfirmationEvent(): Promise<void> {
+  await showDashboard()
+}
+
+// --- Public API ---
+
+export async function initApp(appBridge: EvenAppBridge): Promise<void> {
+  bridge = appBridge
+
+  bridge.onEvenHubEvent((event) => {
+    onEvenHubEvent(event)
+  })
+
+  await refreshState()
+  await showDashboard()
+
+  setInterval(() => { void refreshState() }, 60_000)
+}
