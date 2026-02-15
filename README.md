@@ -31,7 +31,7 @@ Get a Tessie token at [tessie.com](https://www.tessie.com/) under Settings.
 
 ### 2. G2 simulator
 
-Requires [even-dev](https://github.com/nicobrinkkemper/even-dev) (Even Hub Painless Simulator).
+Requires [even-dev](https://github.com/BxNxM/even-dev) (Even Hub Painless Simulator).
 
 ```bash
 # Symlink into even-dev (adjust paths to your local setup)
