@@ -57,15 +57,24 @@ Click **Connect** in the simulator to load the dashboard on the glasses display.
 │ Charging: ...      │      ⊙          │
 │ Sentry: ON         │                 │
 ├────────────────────┴─────────────────┤
-│ tap=actions  dbl=refresh             │
+│ > Lock  Unlock  Climate  Refresh  More│
 └──────────────────────────────────────┘
 ```
 
 The map shows the car's location on CartoDB dark tiles (bright roads on dark background), optimised for the G2's green micro-LED display.
 
-### Controls
+### Quick actions
 
-Tap to open the actions menu, then select:
+The footer bar has a cursor (`>`) that you scroll through with swipe up/down. Tap to execute the selected action:
+
+- **Lock** / **Unlock** – lock or unlock the car
+- **Climate** – toggles climate on or off based on current state
+- **Refresh** – refresh vehicle state
+- **More** – open the full actions menu
+
+### Full actions menu
+
+Selecting **More** opens a scrollable list with all commands:
 
 - Lock / Unlock
 - Start / Stop climate
@@ -76,7 +85,8 @@ Tap to open the actions menu, then select:
 
 | Input | Dashboard | Actions | Confirmation |
 |---|---|---|---|
-| Tap | Open actions | Execute command | Back to dashboard |
+| Swipe | Move footer cursor | – | – |
+| Tap | Execute quick action | Execute command | Back to dashboard |
 | Double tap | Refresh state | Back to dashboard | Back to dashboard |
 
 ## Tech stack
