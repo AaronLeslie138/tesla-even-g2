@@ -2,15 +2,16 @@
 
 Tesla vehicle status and controls for [Even Realities G2](https://www.evenrealities.com/) smart glasses.
 
-View battery, range, climate, charging and sentry status at a glance. Lock/unlock, control climate, open trunk/frunk, flash lights and honk – all from your glasses.
+View battery, range, climate, charging and sentry status at a glance. See your car's location on a live map. Lock/unlock, control climate, open trunk/frunk, flash lights and honk – all from your glasses.
 
 ## Architecture
 
 ```
 [G2 glasses] <--BLE--> [Even app / simulator] <--HTTP--> [Proxy server] <--HTTPS--> [Tessie API]
+                                                                    \--- [CartoDB tiles]
 ```
 
-- **`server/`** – Node server that proxies [Tessie API](https://developer.tessie.com) calls, keeping the API token server-side
+- **`server/`** – Node server that proxies [Tessie API](https://developer.tessie.com) calls (keeping the API token server-side) and renders a static map from CartoDB dark tiles via [sharp](https://sharp.pixelplumbing.com/)
 - **`g2/`** – G2 frontend that renders on the glasses display and provides a settings panel in the browser
 
 ## Setup
@@ -48,16 +49,19 @@ Click **Connect** in the simulator to load the dashboard on the glasses display.
 ### Dashboard
 
 ```
-┌──────────────────────────────┐
-│ 78% ━━━━━━━━──── 241km  🔒  │
-├──────────────────────────────┤
-│ Climate: OFF    Cabin: 21°C  │
-│ Charging: Not plugged in     │
-│ Sentry: ON                   │
-├──────────────────────────────┤
-│ tap=actions  dbl=refresh     │
-└──────────────────────────────┘
+┌────────────────────┬─────────────────┐
+│ 78% ━━━━━━━━── 241km  🔒            │
+├────────────────────┬─────────────────┤
+│ Climate: OFF       │                 │
+│ Cabin: 21°C        │    [MAP]        │
+│ Charging: ...      │      ⊙          │
+│ Sentry: ON         │                 │
+├────────────────────┴─────────────────┤
+│ tap=actions  dbl=refresh             │
+└──────────────────────────────────────┘
 ```
+
+The map shows the car's location on CartoDB dark tiles (bright roads on dark background), optimised for the G2's green micro-LED display.
 
 ### Controls
 
@@ -77,7 +81,8 @@ Tap to open the actions menu, then select:
 
 ## Tech stack
 
-- **Server:** [Hono](https://hono.dev/) + Node
+- **Server:** [Hono](https://hono.dev/) + Node + [sharp](https://sharp.pixelplumbing.com/)
+- **Map tiles:** [CartoDB dark matter](https://github.com/CartoDB/basemap-styles) (free, no API key)
 - **G2 frontend:** TypeScript + [Even Hub SDK](https://www.npmjs.com/package/@evenrealities/even_hub_sdk)
 - **Settings UI:** React + [@jappyjan/even-realities-ui](https://www.npmjs.com/package/@jappyjan/even-realities-ui)
 - **Vehicle API:** [Tessie](https://developer.tessie.com)

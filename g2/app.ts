@@ -1,5 +1,7 @@
 import {
   CreateStartUpPageContainer,
+  ImageContainerProperty,
+  ImageRawDataUpdate,
   ListContainerProperty,
   ListItemContainerProperty,
   OsEventTypeList,
@@ -9,7 +11,7 @@ import {
   type EvenHubEvent,
 } from '@evenrealities/even_hub_sdk'
 import { appendEventLog } from '../_shared/log'
-import { getState, sendCommand, type VehicleState } from './api'
+import { getState, getMap, sendCommand, type VehicleState } from './api'
 
 const DISPLAY_WIDTH = 576
 const DISPLAY_HEIGHT = 288
@@ -17,7 +19,12 @@ const SWIPE_COOLDOWN_MS = 300
 
 const HEADER_HEIGHT = 30
 const FOOTER_HEIGHT = 34
+const BODY_TOP = HEADER_HEIGHT + 4
 const BODY_HEIGHT = DISPLAY_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT - 8
+
+const MAP_WIDTH = 280
+const MAP_HEIGHT = BODY_HEIGHT
+const TEXT_WIDTH = DISPLAY_WIDTH - MAP_WIDTH - 8
 
 type Screen = 'dashboard' | 'actions' | 'loading' | 'confirmation'
 
@@ -98,6 +105,7 @@ async function rebuildPage(config: {
   containerTotalNum: number
   textObject?: TextContainerProperty[]
   listObject?: ListContainerProperty[]
+  imageObject?: ImageContainerProperty[]
 }): Promise<void> {
   if (!bridge) return
 
@@ -115,7 +123,28 @@ function batteryBar(level: number): string {
   return '\u2501'.repeat(filled) + '\u2500'.repeat(10 - filled)
 }
 
-// --- Dashboard screen (3 text containers) ---
+// --- Map loading ---
+
+async function pushMapImage(): Promise<void> {
+  if (!bridge) return
+
+  const mapData = await getMap()
+  if (!mapData) {
+    appendEventLog('Map: no data')
+    return
+  }
+
+  const pngBytes = Array.from(new Uint8Array(mapData))
+  const result = await bridge.updateImageRawData(new ImageRawDataUpdate({
+    containerID: 4,
+    containerName: 'map',
+    imageData: pngBytes,
+  }))
+
+  appendEventLog(`Map: ${String(result)}`)
+}
+
+// --- Dashboard screen (3 text + 1 image container) ---
 
 async function showDashboard(): Promise<void> {
   state.screen = 'dashboard'
@@ -145,13 +174,14 @@ async function showDashboard(): Promise<void> {
   const headerText = `${v.batteryLevel}% ${batteryBar(v.batteryLevel)} ${v.range}km  ${lockIcon}`
 
   const bodyLines = [
-    `Climate: ${v.climateOn ? 'ON' : 'OFF'}    Cabin: ${v.insideTemp}\u00B0C`,
+    `Climate: ${v.climateOn ? 'ON' : 'OFF'}`,
+    `Cabin: ${v.insideTemp}\u00B0C`,
     `Charging: ${v.chargingState}`,
     `Sentry: ${v.sentryMode ? 'ON' : 'OFF'}`,
   ]
 
   await rebuildPage({
-    containerTotalNum: 3,
+    containerTotalNum: 4,
     textObject: [
       new TextContainerProperty({
         containerID: 1,
@@ -169,8 +199,8 @@ async function showDashboard(): Promise<void> {
         containerName: 'body',
         content: bodyLines.join('\n'),
         xPosition: 0,
-        yPosition: HEADER_HEIGHT + 4,
-        width: DISPLAY_WIDTH,
+        yPosition: BODY_TOP,
+        width: TEXT_WIDTH,
         height: BODY_HEIGHT,
         isEventCapture: 1,
         paddingLength: 4,
@@ -190,12 +220,25 @@ async function showDashboard(): Promise<void> {
         paddingLength: 4,
       }),
     ],
+    imageObject: [
+      new ImageContainerProperty({
+        containerID: 4,
+        containerName: 'map',
+        xPosition: TEXT_WIDTH + 8,
+        yPosition: BODY_TOP,
+        width: MAP_WIDTH,
+        height: MAP_HEIGHT,
+      }),
+    ],
   })
 
   appendEventLog(`Dashboard: ${v.batteryLevel}% ${v.range}km`)
+
+  // Push map image after page is rendered (image containers start empty)
+  void pushMapImage()
 }
 
-// --- Actions menu (1 text header + 1 list) ---
+// --- Actions menu (1 list) ---
 
 async function showActions(): Promise<void> {
   state.screen = 'actions'

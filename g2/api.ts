@@ -50,6 +50,16 @@ export async function sendCommand(cmd: string): Promise<{ ok: boolean; error?: s
   }
 }
 
+export async function getMap(): Promise<ArrayBuffer | null> {
+  try {
+    const res = await fetch(`${getBaseUrl()}/api/map`)
+    if (!res.ok) return null
+    return await res.arrayBuffer()
+  } catch {
+    return null
+  }
+}
+
 export async function checkConnection(): Promise<boolean> {
   try {
     const res = await fetch(`${getBaseUrl()}/api/state`, { signal: AbortSignal.timeout(5000) })
