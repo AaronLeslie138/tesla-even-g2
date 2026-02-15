@@ -7,6 +7,7 @@ import {
   OsEventTypeList,
   RebuildPageContainer,
   TextContainerProperty,
+  TextContainerUpgrade,
   type EvenAppBridge,
   type EvenHubEvent,
 } from '@evenrealities/even_hub_sdk'
@@ -28,23 +29,13 @@ const TEXT_WIDTH = DISPLAY_WIDTH - MAP_WIDTH - 8
 
 type Screen = 'dashboard' | 'actions' | 'loading' | 'confirmation'
 
-type State = {
-  screen: Screen
-  startupRendered: boolean
-  lastSwipeTime: number
-  vehicle: VehicleState | null
-  confirmationMessage: string
-}
-
-const state: State = {
-  screen: 'dashboard',
-  startupRendered: false,
-  lastSwipeTime: 0,
-  vehicle: null,
-  confirmationMessage: '',
-}
-
-let bridge: EvenAppBridge | null = null
+const QUICK_ACTIONS = [
+  { label: 'Lock', cmd: 'lock' },
+  { label: 'Unlock', cmd: 'unlock' },
+  { label: 'Climate', cmd: null },
+  { label: 'Refresh', cmd: null },
+  { label: 'More', cmd: null },
+]
 
 const COMMANDS = [
   { label: 'Unlock', cmd: 'unlock' },
@@ -56,6 +47,26 @@ const COMMANDS = [
   { label: 'Flash lights', cmd: 'flash_lights' },
   { label: 'Honk', cmd: 'honk' },
 ]
+
+type State = {
+  screen: Screen
+  startupRendered: boolean
+  lastSwipeTime: number
+  vehicle: VehicleState | null
+  confirmationMessage: string
+  footerCursor: number
+}
+
+const state: State = {
+  screen: 'dashboard',
+  startupRendered: false,
+  lastSwipeTime: 0,
+  vehicle: null,
+  confirmationMessage: '',
+  footerCursor: 0,
+}
+
+let bridge: EvenAppBridge | null = null
 
 // --- Event normalisation (from itsypad) ---
 
@@ -123,6 +134,29 @@ function batteryBar(level: number): string {
   return '\u2501'.repeat(filled) + '\u2500'.repeat(10 - filled)
 }
 
+function footerText(): string {
+  return QUICK_ACTIONS
+    .map((a, i) => `${state.footerCursor === i ? '>' : ' '} ${a.label}`)
+    .join('  ')
+}
+
+async function updateFooter(): Promise<void> {
+  if (!bridge) return
+
+  const content = footerText()
+  const updated = await bridge.textContainerUpgrade(new TextContainerUpgrade({
+    containerID: 3,
+    containerName: 'footer',
+    contentOffset: 0,
+    contentLength: content.length,
+    content,
+  }))
+
+  if (!updated) {
+    await showDashboard()
+  }
+}
+
 // --- Map loading ---
 
 async function pushMapImage(): Promise<void> {
@@ -170,10 +204,10 @@ async function showDashboard(): Promise<void> {
   }
 
   const v = state.vehicle
-  const lockIcon = v.locked ? '\uD83D\uDD12' : '\uD83D\uDD13'
-  const headerText = `${v.batteryLevel}% ${batteryBar(v.batteryLevel)} ${v.range}km  ${lockIcon}`
+  const headerText = `${v.batteryLevel}% ${batteryBar(v.batteryLevel)} ${v.range}km`
 
   const bodyLines = [
+    v.locked ? 'Locked' : '** UNLOCKED **',
     `Climate: ${v.climateOn ? 'ON' : 'OFF'}`,
     `Cabin: ${v.insideTemp}\u00B0C`,
     `Charging: ${v.chargingState}`,
@@ -202,7 +236,7 @@ async function showDashboard(): Promise<void> {
         yPosition: BODY_TOP,
         width: TEXT_WIDTH,
         height: BODY_HEIGHT,
-        isEventCapture: 1,
+        isEventCapture: 0,
         paddingLength: 4,
         borderWidth: 1,
         borderColor: 5,
@@ -211,12 +245,12 @@ async function showDashboard(): Promise<void> {
       new TextContainerProperty({
         containerID: 3,
         containerName: 'footer',
-        content: 'tap=actions  dbl=refresh',
+        content: footerText(),
         xPosition: 0,
         yPosition: HEADER_HEIGHT + BODY_HEIGHT + 8,
         width: DISPLAY_WIDTH,
         height: FOOTER_HEIGHT,
-        isEventCapture: 0,
+        isEventCapture: 1,
         paddingLength: 4,
       }),
     ],
@@ -238,7 +272,7 @@ async function showDashboard(): Promise<void> {
   void pushMapImage()
 }
 
-// --- Actions menu (1 list) ---
+// --- Actions menu (full list) ---
 
 async function showActions(): Promise<void> {
   state.screen = 'actions'
@@ -319,25 +353,22 @@ async function showConfirmation(message: string): Promise<void> {
 
   setTimeout(() => {
     if (state.screen === 'confirmation') {
-      void showDashboard()
+      void refreshState()
     }
   }, 2000)
 }
 
 // --- Command execution ---
 
-async function executeCommand(index: number): Promise<void> {
-  const command = COMMANDS[index]
-  if (!command) return
+async function executeCommand(cmd: string, label: string): Promise<void> {
+  await showLoading(label)
 
-  await showLoading(command.label)
-
-  const result = await sendCommand(command.cmd)
+  const result = await sendCommand(cmd)
   if (result.ok) {
-    appendEventLog(`Command: ${command.label} succeeded`)
-    await showConfirmation(command.label + ' \u2013 OK')
+    appendEventLog(`Command: ${label} succeeded`)
+    await showConfirmation(label + ' \u2013 OK')
   } else {
-    appendEventLog(`Command: ${command.label} failed: ${result.error}`)
+    appendEventLog(`Command: ${label} failed: ${result.error}`)
     await showConfirmation(`Failed: ${result.error}`)
   }
 }
@@ -353,7 +384,7 @@ export async function refreshState(): Promise<void> {
     appendEventLog(`State: refresh failed: ${err instanceof Error ? err.message : String(err)}`)
   }
 
-  if (bridge && state.screen === 'dashboard') {
+  if (bridge && (state.screen === 'dashboard' || state.screen === 'confirmation')) {
     await showDashboard()
   }
 }
@@ -380,8 +411,39 @@ function onEvenHubEvent(event: EvenHubEvent): void {
 // --- Screen event handlers ---
 
 async function handleDashboardEvent(eventType: OsEventTypeList | undefined): Promise<void> {
+  const maxCursor = QUICK_ACTIONS.length - 1
+
+  if (eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT) {
+    if (swipeThrottleOk() && state.footerCursor < maxCursor) {
+      state.footerCursor++
+      await updateFooter()
+    }
+    return
+  }
+
+  if (eventType === OsEventTypeList.SCROLL_TOP_EVENT) {
+    if (swipeThrottleOk() && state.footerCursor > 0) {
+      state.footerCursor--
+      await updateFooter()
+    }
+    return
+  }
+
   if (eventType === OsEventTypeList.CLICK_EVENT) {
-    await showActions()
+    const action = QUICK_ACTIONS[state.footerCursor]
+    if (!action) return
+
+    if (action.cmd) {
+      await executeCommand(action.cmd, action.label)
+    } else if (action.label === 'Climate') {
+      const cmd = state.vehicle?.climateOn ? 'stop_climate' : 'start_climate'
+      const label = state.vehicle?.climateOn ? 'Stop climate' : 'Start climate'
+      await executeCommand(cmd, label)
+    } else if (action.label === 'Refresh') {
+      await refreshState()
+    } else if (action.label === 'More') {
+      await showActions()
+    }
     return
   }
 
@@ -399,7 +461,8 @@ async function handleActionsEvent(event: EvenHubEvent, eventType: OsEventTypeLis
     if (typeof idx !== 'number' || idx < 0) idx = 0
     if (idx >= COMMANDS.length) return
 
-    await executeCommand(idx)
+    const command = COMMANDS[idx]
+    await executeCommand(command.cmd, command.label)
     return
   }
 
@@ -410,7 +473,7 @@ async function handleActionsEvent(event: EvenHubEvent, eventType: OsEventTypeLis
 }
 
 async function handleConfirmationEvent(): Promise<void> {
-  await showDashboard()
+  await refreshState()
 }
 
 // --- Public API ---
