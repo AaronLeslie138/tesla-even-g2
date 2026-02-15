@@ -29,13 +29,15 @@ const TEXT_WIDTH = DISPLAY_WIDTH - MAP_WIDTH - 8
 
 type Screen = 'dashboard' | 'actions' | 'loading' | 'confirmation'
 
-const QUICK_ACTIONS = [
-  { label: 'Lock', cmd: 'lock' },
-  { label: 'Unlock', cmd: 'unlock' },
-  { label: 'Climate', cmd: null },
-  { label: 'Refresh', cmd: null },
-  { label: 'More', cmd: null },
-]
+function quickActions(): Array<{ label: string; cmd: string | null }> {
+  const v = state.vehicle
+  return [
+    v?.locked ? { label: 'Unlock', cmd: 'unlock' } : { label: 'Lock', cmd: 'lock' },
+    v?.climateOn ? { label: 'Climate off', cmd: 'stop_climate' } : { label: 'Climate on', cmd: 'start_climate' },
+    { label: 'Refresh', cmd: null },
+    { label: 'More', cmd: null },
+  ]
+}
 
 const COMMANDS = [
   { label: 'Unlock', cmd: 'unlock' },
@@ -135,7 +137,7 @@ function batteryBar(level: number): string {
 }
 
 function footerText(): string {
-  return QUICK_ACTIONS
+  return quickActions()
     .map((a, i) => `${state.footerCursor === i ? '>' : ' '} ${a.label}`)
     .join('  ')
 }
@@ -411,7 +413,7 @@ function onEvenHubEvent(event: EvenHubEvent): void {
 // --- Screen event handlers ---
 
 async function handleDashboardEvent(eventType: OsEventTypeList | undefined): Promise<void> {
-  const maxCursor = QUICK_ACTIONS.length - 1
+  const maxCursor = quickActions().length - 1
 
   if (eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT) {
     if (swipeThrottleOk() && state.footerCursor < maxCursor) {
@@ -430,15 +432,11 @@ async function handleDashboardEvent(eventType: OsEventTypeList | undefined): Pro
   }
 
   if (eventType === OsEventTypeList.CLICK_EVENT) {
-    const action = QUICK_ACTIONS[state.footerCursor]
+    const action = quickActions()[state.footerCursor]
     if (!action) return
 
     if (action.cmd) {
       await executeCommand(action.cmd, action.label)
-    } else if (action.label === 'Climate') {
-      const cmd = state.vehicle?.climateOn ? 'stop_climate' : 'start_climate'
-      const label = state.vehicle?.climateOn ? 'Stop climate' : 'Start climate'
-      await executeCommand(cmd, label)
     } else if (action.label === 'Refresh') {
       await refreshState()
     } else if (action.label === 'More') {

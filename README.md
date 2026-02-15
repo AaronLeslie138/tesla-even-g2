@@ -57,7 +57,7 @@ Click **Connect** in the simulator to load the dashboard on the glasses display.
 │ Charging: ...      │      ⊙          │
 │ Sentry: ON         │                 │
 ├────────────────────┴─────────────────┤
-│ > Lock  Unlock  Climate  Refresh  More│
+│ > Unlock  Climate on  Refresh  More   │
 └──────────────────────────────────────┘
 ```
 
@@ -65,10 +65,10 @@ The map shows the car's location on CartoDB dark tiles (bright roads on dark bac
 
 ### Quick actions
 
-The footer bar has a cursor (`>`) that you scroll through with swipe up/down. Tap to execute the selected action:
+The footer bar has a cursor (`>`) that you scroll through with swipe up/down. Tap to execute the selected action. Actions adapt to current vehicle state – a locked car shows **Unlock**, an unlocked car shows **Lock**:
 
-- **Lock** / **Unlock** – lock or unlock the car
-- **Climate** – toggles climate on or off based on current state
+- **Lock** / **Unlock** – shown based on current lock state
+- **Climate on** / **Climate off** – shown based on current climate state
 - **Refresh** – refresh vehicle state
 - **More** – open the full actions menu
 
