@@ -33,8 +33,8 @@ Get a Tessie token at [tessie.com](https://www.tessie.com/) under Settings.
 Requires [even-dev](https://github.com/nicobrinkkemper/even-dev) (Even Hub Painless Simulator).
 
 ```bash
-# Symlink into even-dev
-ln -s /path/to/tesla-even-g2/g2 /path/to/even-dev/apps/tesla
+# Symlink into even-dev (adjust paths to your local setup)
+ln -s "$(pwd)/g2" /path/to/even-dev/apps/tesla
 
 # Run
 cd /path/to/even-dev
