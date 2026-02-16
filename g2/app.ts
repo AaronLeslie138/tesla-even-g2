@@ -16,7 +16,7 @@ import { getState, getMap, sendCommand, type VehicleState } from './api'
 
 const DISPLAY_WIDTH = 576
 const DISPLAY_HEIGHT = 288
-const SWIPE_COOLDOWN_MS = 300
+const SWIPE_COOLDOWN_MS = 150
 
 const HEADER_HEIGHT = 30
 const FOOTER_HEIGHT = 34

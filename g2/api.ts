@@ -1,4 +1,5 @@
 const SERVER_URL_KEY = 'tesla:server-url'
+const TOKEN_KEY = 'tesla:tessie-token'
 const DEFAULT_URL = 'http://localhost:3001'
 
 function getBaseUrl(): string {
@@ -7,6 +8,19 @@ function getBaseUrl(): string {
 
 export function setBaseUrl(url: string): void {
   localStorage.setItem(SERVER_URL_KEY, url)
+}
+
+export function getToken(): string {
+  return localStorage.getItem(TOKEN_KEY) ?? ''
+}
+
+export function setToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token)
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getToken()
+  return token ? { 'X-Tessie-Token': token } : {}
 }
 
 export type VehicleState = {
@@ -20,7 +34,7 @@ export type VehicleState = {
 }
 
 export async function getState(): Promise<VehicleState> {
-  const res = await fetch(`${getBaseUrl()}/api/state`)
+  const res = await fetch(`${getBaseUrl()}/api/state`, { headers: authHeaders() })
   if (!res.ok) throw new Error(`State fetch failed: ${res.status}`)
   const data = await res.json()
 
@@ -41,7 +55,7 @@ export async function getState(): Promise<VehicleState> {
 
 export async function sendCommand(cmd: string): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl()}/api/command/${cmd}`, { method: 'POST' })
+    const res = await fetch(`${getBaseUrl()}/api/command/${cmd}`, { method: 'POST', headers: authHeaders() })
     const data = await res.json()
     if (!res.ok) return { ok: false, error: data.error ?? `HTTP ${res.status}` }
     return { ok: true }
@@ -52,7 +66,7 @@ export async function sendCommand(cmd: string): Promise<{ ok: boolean; error?: s
 
 export async function getMap(): Promise<ArrayBuffer | null> {
   try {
-    const res = await fetch(`${getBaseUrl()}/api/map`)
+    const res = await fetch(`${getBaseUrl()}/api/map`, { headers: authHeaders() })
     if (!res.ok) return null
     return await res.arrayBuffer()
   } catch {
@@ -62,7 +76,7 @@ export async function getMap(): Promise<ArrayBuffer | null> {
 
 export async function checkConnection(): Promise<boolean> {
   try {
-    const res = await fetch(`${getBaseUrl()}/api/state`, { signal: AbortSignal.timeout(5000) })
+    const res = await fetch(`${getBaseUrl()}/api/state`, { headers: authHeaders(), signal: AbortSignal.timeout(5000) })
     return res.ok
   } catch {
     return false

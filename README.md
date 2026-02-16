@@ -21,11 +21,10 @@ View battery, range, climate, charging and sentry status at a glance. See your c
 ```bash
 cd server
 npm install
-echo 'TESSIE_TOKEN=your_tessie_token' > .env
 npm run dev
 ```
 
-The server auto-discovers your VIN and listens on `http://localhost:3001`.
+The server listens on `http://localhost:3001`. It accepts the Tessie API token from the browser settings panel via the `X-Tessie-Token` header. Optionally, you can set `TESSIE_TOKEN` in a `.env` file as a fallback.
 
 Get a Tessie token at [tessie.com](https://www.tessie.com/) under Settings.
 
@@ -34,15 +33,15 @@ Get a Tessie token at [tessie.com](https://www.tessie.com/) under Settings.
 Requires [even-dev](https://github.com/BxNxM/even-dev) (Unified Even Hub Simulator v0.0.2).
 
 ```bash
-# Symlink into even-dev (adjust paths to your local setup)
-ln -s "$(pwd)/g2" /path/to/even-dev/apps/tesla
+# Copy into even-dev (adjust paths to your local setup)
+cp -r "$(pwd)/g2" /path/to/even-dev/apps/tesla
 
 # Run
 cd /path/to/even-dev
 APP_NAME=tesla ./start-even.sh
 ```
 
-Click **Connect** in the simulator to load the dashboard on the glasses display.
+Enter your Tessie token in the browser settings panel, then click **Connect Tesla** to load the dashboard on the glasses display.
 
 ## Glasses UI
 

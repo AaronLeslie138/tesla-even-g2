@@ -1,24 +1,22 @@
 import 'dotenv/config'
 import { Hono } from 'hono'
+import type { Context } from 'hono'
 import { cors } from 'hono/cors'
 import { serve } from '@hono/node-server'
 import sharp from 'sharp'
 
-const TESSIE_TOKEN = process.env.TESSIE_TOKEN
-
-if (!TESSIE_TOKEN) {
-  console.error('Missing TESSIE_TOKEN in .env')
-  process.exit(1)
+function getToken(c: Context): string | undefined {
+  return c.req.header('X-Tessie-Token') ?? process.env.TESSIE_TOKEN
 }
 
-function tessieUrl(path: string): string {
-  return `https://api.tessie.com${path}?access_token=${TESSIE_TOKEN}`
+function tessieUrl(path: string, token: string): string {
+  return `https://api.tessie.com${path}?access_token=${token}`
 }
 
 let vin: string | null = null
 
-async function discoverVin(): Promise<string> {
-  const res = await fetch(tessieUrl('/vehicles'))
+async function discoverVin(token: string): Promise<string> {
+  const res = await fetch(tessieUrl('/vehicles', token))
   if (!res.ok) throw new Error(`Failed to list vehicles: ${res.status}`)
   const data = await res.json() as { results: Array<{ vin: string }> }
   const first = data.results?.[0]
@@ -143,24 +141,39 @@ const app = new Hono()
 app.use('/*', cors({ origin: '*' }))
 
 app.get('/api/state', async (c) => {
-  if (!vin) return c.json({ error: 'VIN not discovered yet' }, 503)
-  const res = await fetch(tessieUrl(`/${vin}/state`))
+  const token = getToken(c)
+  if (!token) return c.json({ error: 'No Tessie token provided' }, 401)
+  if (!vin) {
+    vin = await discoverVin(token)
+    console.log(`Discovered VIN: ${vin}`)
+  }
+  const res = await fetch(tessieUrl(`/${vin}/state`, token))
   const data = await res.json()
   return c.json(data, res.status as 200)
 })
 
 app.post('/api/command/:cmd', async (c) => {
-  if (!vin) return c.json({ error: 'VIN not discovered yet' }, 503)
+  const token = getToken(c)
+  if (!token) return c.json({ error: 'No Tessie token provided' }, 401)
+  if (!vin) {
+    vin = await discoverVin(token)
+    console.log(`Discovered VIN: ${vin}`)
+  }
   const cmd = c.req.param('cmd')
-  const res = await fetch(tessieUrl(`/${vin}/command/${cmd}`), { method: 'POST' })
+  const res = await fetch(tessieUrl(`/${vin}/command/${cmd}`, token), { method: 'POST' })
   const data = await res.json()
   return c.json(data, res.status as 200)
 })
 
 app.get('/api/map', async (c) => {
-  if (!vin) return c.json({ error: 'VIN not discovered yet' }, 503)
+  const token = getToken(c)
+  if (!token) return c.json({ error: 'No Tessie token provided' }, 401)
+  if (!vin) {
+    vin = await discoverVin(token)
+    console.log(`Discovered VIN: ${vin}`)
+  }
 
-  const stateRes = await fetch(tessieUrl(`/${vin}/state`))
+  const stateRes = await fetch(tessieUrl(`/${vin}/state`, token))
   if (!stateRes.ok) return c.json({ error: 'Failed to get vehicle state' }, 502)
   const state = await stateRes.json() as { drive_state?: { latitude?: number; longitude?: number } }
 
@@ -185,8 +198,6 @@ app.get('/api/map', async (c) => {
 const port = 3001
 
 async function start() {
-  vin = await discoverVin()
-  console.log(`Discovered VIN: ${vin}`)
   console.log(`Tesla proxy listening on http://localhost:${port}`)
   serve({ fetch: app.fetch, port })
 }
