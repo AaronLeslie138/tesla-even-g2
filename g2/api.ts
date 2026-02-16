@@ -28,6 +28,7 @@ export type VehicleState = {
   range: number
   climateOn: boolean
   insideTemp: number
+  outsideTemp: number
   locked: boolean
   chargingState: string
   sentryMode: boolean
@@ -47,6 +48,7 @@ export async function getState(): Promise<VehicleState> {
     range: Math.round((charge.battery_range ?? 0) * 1.60934),
     climateOn: climate.is_climate_on ?? false,
     insideTemp: Math.round(climate.inside_temp ?? 0),
+    outsideTemp: Math.round(climate.outside_temp ?? 0),
     locked: vehicle.locked ?? true,
     chargingState: charge.charging_state ?? 'Unknown',
     sentryMode: vehicle.sentry_mode ?? false,
