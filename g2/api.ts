@@ -1,3 +1,5 @@
+import type { VehicleState, ActionParams } from './state'
+
 const SERVER_URL_KEY = 'tesla:server-url'
 const TOKEN_KEY = 'tesla:tessie-token'
 const DEFAULT_URL = 'http://localhost:3001'
@@ -23,17 +25,6 @@ function authHeaders(): Record<string, string> {
   return token ? { 'X-Tessie-Token': token } : {}
 }
 
-export type VehicleState = {
-  batteryLevel: number
-  range: number
-  climateOn: boolean
-  insideTemp: number
-  outsideTemp: number
-  locked: boolean
-  chargingState: string
-  sentryMode: boolean
-}
-
 export async function getState(): Promise<VehicleState> {
   const res = await fetch(`${getBaseUrl()}/api/state`, { headers: authHeaders() })
   if (!res.ok) throw new Error(`State fetch failed: ${res.status}`)
@@ -52,12 +43,30 @@ export async function getState(): Promise<VehicleState> {
     locked: vehicle.locked ?? true,
     chargingState: charge.charging_state ?? 'Unknown',
     sentryMode: vehicle.sentry_mode ?? false,
+    chargePortDoorOpen: charge.charge_port_door_open ?? false,
+    chargeLimitSoc: charge.charge_limit_soc ?? 80,
+    chargeAmps: charge.charge_current_request ?? 0,
+    driverTempSetting: climate.driver_temp_setting ?? 20,
+    defrostMode: climate.defrost_mode !== 0 && climate.defrost_mode !== undefined,
+    seatHeaterLeft: climate.seat_heater_left ?? 0,
+    seatHeaterRight: climate.seat_heater_right ?? 0,
+    valetMode: vehicle.valet_mode ?? false,
+    sunRoofPercentOpen: vehicle.sun_roof_percent_open ?? 0,
+    homelinkNearby: vehicle.homelink_nearby ?? false,
   }
 }
 
-export async function sendCommand(cmd: string): Promise<{ ok: boolean; error?: string }> {
+export async function sendCommand(cmd: string, params?: ActionParams): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl()}/api/command/${cmd}`, { method: 'POST', headers: authHeaders() })
+    let url = `${getBaseUrl()}/api/command/${cmd}`
+    if (params && Object.keys(params).length > 0) {
+      const qs = new URLSearchParams()
+      for (const [k, v] of Object.entries(params)) {
+        qs.set(k, String(v))
+      }
+      url += `?${qs.toString()}`
+    }
+    const res = await fetch(url, { method: 'POST', headers: authHeaders() })
     const data = await res.json()
     if (!res.ok) return { ok: false, error: data.error ?? `HTTP ${res.status}` }
     return { ok: true }

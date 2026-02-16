@@ -160,7 +160,16 @@ app.post('/api/command/:cmd', async (c) => {
     console.log(`Discovered VIN: ${vin}`)
   }
   const cmd = c.req.param('cmd')
-  const res = await fetch(tessieUrl(`/${vin}/command/${cmd}`, token), { method: 'POST' })
+  const path = cmd === 'wake' ? `/${vin}/wake` : `/${vin}/command/${cmd}`
+  let url = tessieUrl(path, token)
+
+  // Forward client query params to Tessie
+  const clientParams = new URL(c.req.url).searchParams
+  for (const [key, value] of clientParams) {
+    url += `&${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+  }
+
+  const res = await fetch(url, { method: 'POST' })
   const data = await res.json()
   return c.json(data, res.status as 200)
 })

@@ -1,18 +1,65 @@
 # Tesla Even G2
 
-Tesla vehicle status and controls for [Even Realities G2](https://www.evenrealities.com/) smart glasses.
+Tesla vehicle controls for [Even Realities G2](https://www.evenrealities.com/) smart glasses.
 
-View battery, range, climate, charging and sentry status at a glance. See your car's location on a live map. Lock/unlock, control climate, open trunk/frunk, flash lights and honk – all from your glasses.
+35+ commands across climate, charging, security, windows and more – all from your glasses. View battery, range, temperatures, charging and sentry status at a glance with a live map showing your car's location.
 
-## Architecture
+## System architecture
 
 ```
 [G2 glasses] <--BLE--> [Even app / simulator] <--HTTP--> [Proxy server] <--HTTPS--> [Tessie API]
                                                                     \--- [CartoDB tiles]
 ```
 
-- **`server/`** – Node server that proxies [Tessie API](https://developer.tessie.com) calls (keeping the API token server-side) and renders a static map from CartoDB dark tiles via [sharp](https://sharp.pixelplumbing.com/)
-- **`g2/`** – G2 frontend that renders on the glasses display and provides a settings panel in the browser
+The proxy server keeps the Tessie API token server-side, forwards commands with query parameters for parameterized operations (temperature, charge limit, etc.), and renders static map images from CartoDB dark tiles.
+
+## App architecture
+
+```
+g2/
+  index.ts         App module registration
+  main.ts          Bridge connection + settings UI bootstrap
+  app.ts           Thin orchestrator: initApp, refreshState
+  state.ts         VehicleState type, app state singleton, bridge holder
+  api.ts           HTTP client: getState, sendCommand (with params), getMap
+  actions.ts       Action type system, all 6 categories with 35+ commands
+  navigation.ts    Stack-based menu navigation controller
+  events.ts        Event normalisation + screen-specific dispatch
+  renderer.ts      All screen rendering (dashboard, menu, loading, confirmation)
+  layout.ts        Display dimension constants
+  ui.tsx           React settings panel (token, server URL, connection status)
+
+server/src/
+  index.ts         Hono proxy: Tessie API, query param forwarding, map rendering
+```
+
+### Data flow
+
+`app.ts` is the entry point that wires everything together. On startup it fetches vehicle state via `api.ts`, stores it in the `state.ts` singleton, and tells `renderer.ts` to paint the dashboard. User interactions flow through `events.ts`, which normalises raw SDK events and dispatches them based on the current screen. Menu navigation uses a stack in `navigation.ts` – pushing levels for categories, action lists and preset sub-menus, popping on back.
+
+### Action model
+
+Commands are defined declaratively in `actions.ts` using four action types:
+
+- **Toggle** – context-aware label and command based on vehicle state (e.g. Lock/Unlock)
+- **Command** – simple one-shot command, optionally with query parameters
+- **Sub-menu** – drills into a list of child actions (e.g. temperature presets)
+- **Refresh** – triggers a state refresh
+
+Actions are grouped into 6 categories: Quick actions (shown on dashboard), Climate, Charging, Security, Windows and Other. The `resolveLabel` and `resolveCommand` helpers turn any action into a concrete label and command based on current vehicle state.
+
+### Navigation model
+
+The dashboard shows quick actions plus a "More >" entry. Selecting it pushes a category list onto the navigation stack. Selecting a category pushes its action list. Parameterized commands (temperature, charge limit, seat heating, etc.) push a preset sub-menu. Max depth is 3 levels.
+
+```
+Dashboard (quick actions + "More >")
+  -> Categories (Climate, Charging, Security, Windows, Other)
+     -> Action list
+        -> Preset sub-menu (for parameterized commands)
+```
+
+Every non-dashboard screen has "< Back" at index 0. Double-tap always goes back one level.
 
 ## Setup
 
@@ -24,7 +71,7 @@ npm install
 npm run dev
 ```
 
-The server listens on `http://localhost:3001`. It accepts the Tessie API token from the browser settings panel via the `X-Tessie-Token` header. Optionally, you can set `TESSIE_TOKEN` in a `.env` file as a fallback.
+The server listens on `http://localhost:3001`. It accepts the Tessie API token from the browser settings panel via the `X-Tessie-Token` header. Optionally, set `TESSIE_TOKEN` in a `.env` file as a fallback.
 
 Get a Tessie token at [tessie.com](https://www.tessie.com/) under Settings.
 
@@ -45,48 +92,28 @@ Enter your Tessie token in the browser settings panel, then click **Connect Tesl
 
 ## Glasses UI
 
-### Dashboard
+The dashboard shows battery level, range, lock state and charging status in the header, a scrollable quick-actions list on the left, a live map on the right, and temperature/climate/sentry info in the footer. Menu screens use the full display width.
 
-```
-┌────────────────────┬─────────────────┐
-│ 78% ━━━━━━━━── 241km  🔒            │
-├────────────────────┬─────────────────┤
-│ Climate: OFF       │                 │
-│ Cabin: 21°C        │    [MAP]        │
-│ Charging: ...      │      ⊙          │
-│ Sentry: ON         │                 │
-├────────────────────┴─────────────────┤
-│ > Unlock  Climate on  Refresh  More   │
-└──────────────────────────────────────┘
-```
+### Commands
 
-The map shows the car's location on CartoDB dark tiles (bright roads on dark background), optimised for the G2's green micro-LED display.
+**Quick actions** (dashboard) – Lock/Unlock, Climate on/off, Open frunk, Open trunk, Flash lights, Honk, Refresh
 
-### Quick actions
+**Climate** – Climate on/off, Defrost on/off, Wheel heater on/off, Set temperature (18/20/22/24/26 C), Seat heating (per-seat, levels 0–3), Seat cooling (per-seat, levels 0–3)
 
-The footer bar has a cursor (`>`) that you scroll through with swipe up/down. Tap to execute the selected action. Actions adapt to current vehicle state – a locked car shows **Unlock**, an unlocked car shows **Lock**:
+**Charging** – Charge port open/close, Start/Stop charging, Charge limit (50–100%), Charging amps (8/16/24/32/48 A)
 
-- **Lock** / **Unlock** – shown based on current lock state
-- **Climate on** / **Climate off** – shown based on current climate state
-- **Refresh** – refresh vehicle state
-- **More** – open the full actions menu
+**Security** – Sentry on/off, Valet on/off, Guest on/off, Keyless driving
 
-### Full actions menu
+**Windows** – Vent/Close windows, Vent/Close sunroof
 
-Selecting **More** opens a scrollable list with all commands:
-
-- Lock / Unlock
-- Start / Stop climate
-- Open frunk / trunk
-- Flash lights / Honk
+**Other** – HomeLink, Boombox, Bio defense on/off, Wake
 
 ### Navigation
 
-| Input | Dashboard | Actions | Confirmation |
+| Input | Dashboard | Menu | Confirmation |
 |---|---|---|---|
-| Swipe | Move footer cursor | – | – |
-| Tap | Execute quick action | Execute command | Back to dashboard |
-| Double tap | Refresh state | Back to dashboard | Back to dashboard |
+| Tap | Execute action / open More | Execute action / navigate | Back to dashboard |
+| Double tap | Refresh state | Go back one level | Back to dashboard |
 
 ## Tech stack
 
