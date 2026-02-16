@@ -73,7 +73,7 @@ npm install
 npm run dev
 ```
 
-The server listens on `http://localhost:3001`. It accepts the Tessie API token from the browser settings panel via the `X-Tessie-Token` header. Optionally, set `TESSIE_TOKEN` in a `.env` file as a fallback.
+The server listens on `http://localhost:3001`. It accepts the Tessie API token from the browser settings panel via the `X-Tessie-Token` header.
 
 Get a Tessie token at [tessie.com](https://www.tessie.com/) under Settings.
 

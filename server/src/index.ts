@@ -1,4 +1,3 @@
-import 'dotenv/config'
 import { Hono } from 'hono'
 import type { Context } from 'hono'
 import { cors } from 'hono/cors'
@@ -6,7 +5,7 @@ import { serve } from '@hono/node-server'
 import sharp from 'sharp'
 
 function getToken(c: Context): string | undefined {
-  return c.req.header('X-Tessie-Token') ?? process.env.TESSIE_TOKEN
+  return c.req.header('X-Tessie-Token')
 }
 
 function tessieUrl(path: string, token: string): string {
