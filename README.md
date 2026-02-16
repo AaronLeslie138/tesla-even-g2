@@ -1,5 +1,7 @@
 # Tesla Even G2
 
+> See also: [G2 development notes](https://github.com/nickustinov/even-g2-notes/blob/main/G2.md) – hardware specs, UI system, input handling and practical patterns for Even Realities G2.
+
 Tesla vehicle controls for [Even Realities G2](https://www.evenrealities.com/) smart glasses.
 
 35+ commands across climate, charging, security, windows and more – all from your glasses. View battery, range, temperatures, charging and sentry status at a glance with a live map showing your car's location.
