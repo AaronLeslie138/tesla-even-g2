@@ -6,6 +6,8 @@ Tesla vehicle controls for [Even Realities G2](https://www.evenrealities.com/) s
 
 35+ commands across climate, charging, security, windows and more – all from your glasses. View battery, range, temperatures, charging and sentry status at a glance with a live map showing your car's location.
 
+![Dashboard screenshot](screenshot.png)
+
 ## System architecture
 
 ```
