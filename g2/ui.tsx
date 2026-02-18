@@ -25,19 +25,19 @@ function ServerField() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div>
-        <Text as="label" variant="subtitle" className="block mb-1">
+        <Text as="label" variant="subtitle" style={{ display: 'block', marginBottom: '4px' }}>
           Server URL
         </Text>
         <Input
           value={url}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
           placeholder="http://localhost:3001"
-          className="w-full"
+          style={{ width: '100%' }}
         />
       </div>
-      <Button variant="primary" className="w-full" onClick={handleSave}>
+      <Button variant="primary" style={{ width: '100%' }} onClick={handleSave}>
         {saved ? 'Saved' : 'Save'}
       </Button>
     </div>
@@ -55,9 +55,9 @@ function TokenField() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div>
-        <Text as="label" variant="subtitle" className="block mb-1">
+        <Text as="label" variant="subtitle" style={{ display: 'block', marginBottom: '4px' }}>
           API token
         </Text>
         <Input
@@ -65,10 +65,10 @@ function TokenField() {
           value={token}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTokenValue(e.target.value)}
           placeholder="Enter your Tessie token"
-          className="w-full"
+          style={{ width: '100%' }}
         />
       </div>
-      <Button variant="primary" className="w-full" onClick={handleSave}>
+      <Button variant="primary" style={{ width: '100%' }} onClick={handleSave}>
         {saved ? 'Saved' : 'Save'}
       </Button>
     </div>
@@ -85,13 +85,17 @@ function ConnectionStatus() {
 
   useEffect(() => { check() }, [])
 
-  const color = status === 'connected' ? 'text-tc-green' : status === 'disconnected' ? 'text-tc-red' : 'text-tc-2'
+  const color = status === 'connected'
+    ? 'var(--color-tc-green, #4BB954)'
+    : status === 'disconnected'
+      ? 'var(--color-tc-red, #FF4535)'
+      : 'var(--color-tc-2, #7b7b7b)'
   const label = status === 'checking' ? 'Checking...' : status === 'connected' ? 'Connected' : 'Disconnected'
 
   return (
-    <div className="flex items-center justify-between">
-      <Text variant="body-2" className={color}>{label}</Text>
-      <Button variant="secondary" size="sm" onClick={check}>Recheck</Button>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Text variant="body-2" style={{ color }}>{label}</Text>
+      <Button variant="default" onClick={check}>Recheck</Button>
     </div>
   )
 }
@@ -106,11 +110,11 @@ function SettingsPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <Card className="w-full">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <Card style={{ width: '100%' }}>
         <CardHeader>
           <Text variant="title-1">Tessie token</Text>
-          <Text variant="body-2" className="text-tc-2 mt-1 block">
+          <Text variant="body-2" style={{ color: 'var(--color-tc-2)', marginTop: '4px', display: 'block' }}>
             API token from tessie.com – stored in your browser only.
           </Text>
         </CardHeader>
@@ -118,10 +122,10 @@ function SettingsPanel() {
           <TokenField />
         </CardContent>
       </Card>
-      <Card className="w-full">
+      <Card style={{ width: '100%' }}>
         <CardHeader>
           <Text variant="title-1">Tesla server</Text>
-          <Text variant="body-2" className="text-tc-2 mt-1 block">
+          <Text variant="body-2" style={{ color: 'var(--color-tc-2)', marginTop: '4px', display: 'block' }}>
             URL of the Tessie API proxy server.
           </Text>
         </CardHeader>
@@ -129,7 +133,7 @@ function SettingsPanel() {
           <ServerField />
         </CardContent>
       </Card>
-      <Card className="w-full">
+      <Card style={{ width: '100%' }}>
         <CardHeader>
           <Text variant="title-1">Connection</Text>
         </CardHeader>
@@ -137,16 +141,16 @@ function SettingsPanel() {
           <ConnectionStatus />
         </CardContent>
       </Card>
-      <Card className="w-full">
+      <Card style={{ width: '100%' }}>
         <CardContent>
-          <Button variant="secondary" className="w-full" onClick={handleRefresh}>
+          <Button variant="default" style={{ width: '100%' }} onClick={handleRefresh}>
             Refresh vehicle state
           </Button>
         </CardContent>
       </Card>
-      <Card className="w-full">
+      <Card style={{ width: '100%' }}>
         <CardContent>
-          <Button variant="primary" className="w-full" onClick={handleConnect}>
+          <Button variant="primary" style={{ width: '100%' }} onClick={handleConnect}>
             Connect Tesla
           </Button>
         </CardContent>
@@ -167,14 +171,13 @@ export function initUI(): void {
   const connectBtn = document.getElementById('connectBtn')
   if (connectBtn) connectBtn.style.display = 'none'
 
-  // Move simulator heading and status to bottom
   const heading = app.querySelector('h1')
   const status = document.getElementById('status')
   if (heading) app.appendChild(heading)
   if (status) app.appendChild(status)
 
   const container = document.createElement('div')
-  container.className = 'my-12'
+  container.style.margin = '48px 0'
   app.insertBefore(container, heading)
 
   createRoot(container).render(
