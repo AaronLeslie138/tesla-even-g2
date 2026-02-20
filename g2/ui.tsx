@@ -173,12 +173,16 @@ export function initUI(): void {
 
   const heading = app.querySelector('h1')
   const status = document.getElementById('status')
-  if (heading) app.appendChild(heading)
-  if (status) app.appendChild(status)
+  const eventLog = document.getElementById('event-log')
 
   const container = document.createElement('div')
   container.style.margin = '48px 0'
-  app.insertBefore(container, heading)
+
+  // Reorder: heading, UI, status, log at bottom
+  if (heading) app.appendChild(heading)
+  app.appendChild(container)
+  if (status) app.appendChild(status)
+  if (eventLog) app.appendChild(eventLog)
 
   createRoot(container).render(
     <React.StrictMode>
