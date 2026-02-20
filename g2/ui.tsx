@@ -121,17 +121,19 @@ function SettingsPanel() {
           <TokenField />
         </CardContent>
       </Card>
-      <Card style={{ width: '100%' }}>
-        <CardHeader>
-          <Text variant="title-1">Tesla server</Text>
-          <Text variant="body-2" style={{ color: 'var(--color-tc-2)', marginTop: '4px', display: 'block' }}>
-            Optional – only needed if running a separate proxy server.
-          </Text>
-        </CardHeader>
-        <CardContent>
-          <ServerField />
-        </CardContent>
-      </Card>
+      {window.location.hostname === 'localhost' && (
+        <Card style={{ width: '100%' }}>
+          <CardHeader>
+            <Text variant="title-1">Tesla server</Text>
+            <Text variant="body-2" style={{ color: 'var(--color-tc-2)', marginTop: '4px', display: 'block' }}>
+              Optional – only needed if running a separate proxy server.
+            </Text>
+          </CardHeader>
+          <CardContent>
+            <ServerField />
+          </CardContent>
+        </Card>
+      )}
       <Card style={{ width: '100%' }}>
         <CardHeader>
           <Text variant="title-1">Connection</Text>
