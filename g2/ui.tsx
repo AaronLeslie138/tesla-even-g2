@@ -12,10 +12,9 @@ import { setBaseUrl, checkConnection, getToken, setToken } from './api'
 import { refreshState } from './app'
 
 const SERVER_URL_KEY = 'tesla:server-url'
-const DEFAULT_URL = 'http://localhost:3001'
 
 function ServerField() {
-  const [url, setUrl] = useState(localStorage.getItem(SERVER_URL_KEY) ?? DEFAULT_URL)
+  const [url, setUrl] = useState(localStorage.getItem(SERVER_URL_KEY) ?? '')
   const [saved, setSaved] = useState(false)
 
   const handleSave = () => {
@@ -33,7 +32,7 @@ function ServerField() {
         <Input
           value={url}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
-          placeholder="http://localhost:3001"
+          placeholder="Leave empty for same-origin"
           style={{ width: '100%' }}
         />
       </div>
@@ -126,7 +125,7 @@ function SettingsPanel() {
         <CardHeader>
           <Text variant="title-1">Tesla server</Text>
           <Text variant="body-2" style={{ color: 'var(--color-tc-2)', marginTop: '4px', display: 'block' }}>
-            URL of the Tessie API proxy server.
+            Optional – only needed if running a separate proxy server.
           </Text>
         </CardHeader>
         <CardContent>

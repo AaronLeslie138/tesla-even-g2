@@ -2,10 +2,9 @@ import type { VehicleState, ActionParams } from './state'
 
 const SERVER_URL_KEY = 'tesla:server-url'
 const TOKEN_KEY = 'tesla:tessie-token'
-const DEFAULT_URL = 'http://localhost:3001'
 
 function getBaseUrl(): string {
-  return localStorage.getItem(SERVER_URL_KEY) ?? DEFAULT_URL
+  return localStorage.getItem(SERVER_URL_KEY) ?? ''
 }
 
 export function setBaseUrl(url: string): void {
