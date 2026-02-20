@@ -79,7 +79,24 @@ The server listens on `http://localhost:3001`. It accepts the Tessie API token f
 
 Get a Tessie token at [tessie.com](https://www.tessie.com/) under Settings.
 
-### 2. G2 simulator
+### 2. G2 app
+
+```bash
+npm install
+npm run dev
+```
+
+Opens on `http://localhost:5173`. Enter your Tessie token and server URL in the settings panel, then click **Connect Tesla**.
+
+### 3. Running on glasses
+
+In a second terminal, generate a QR code and scan it with the Even App:
+
+```bash
+npx evenhub qr --http --ip <your-local-ip> --port 5173
+```
+
+### 4. G2 simulator
 
 Requires [even-dev](https://github.com/BxNxM/even-dev) (Unified Even Hub Simulator v0.0.2).
 
