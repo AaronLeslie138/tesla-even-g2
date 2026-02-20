@@ -27,8 +27,8 @@ async function discoverVin(token: string): Promise<string> {
 
 const TILE_SIZE = 256
 const MAP_ZOOM = 15
-const MAP_WIDTH = 280
-const MAP_HEIGHT = 216
+const MAP_WIDTH = 200
+const MAP_HEIGHT = 100
 
 function latLngToTileXY(lat: number, lng: number, zoom: number) {
   const n = 2 ** zoom

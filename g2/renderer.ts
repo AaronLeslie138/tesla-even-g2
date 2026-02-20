@@ -18,6 +18,7 @@ import {
   BODY_HEIGHT,
   MAP_WIDTH,
   MAP_HEIGHT,
+  MAP_TOP,
   TEXT_WIDTH,
 } from './layout'
 import { state, bridge } from './state'
@@ -173,7 +174,7 @@ export async function showDashboard(): Promise<void> {
         containerID: 4,
         containerName: 'map',
         xPosition: TEXT_WIDTH + 8,
-        yPosition: BODY_TOP,
+        yPosition: MAP_TOP,
         width: MAP_WIDTH,
         height: MAP_HEIGHT,
       }),

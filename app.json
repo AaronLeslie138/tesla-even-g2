@@ -1,0 +1,16 @@
+{
+  "package_id": "com.tesla.eveng2",
+  "edition": "202601",
+  "name": "Tesla",
+  "version": "1.0.0",
+  "min_app_version": "0.1.0",
+  "tagline": "Tesla vehicle controls for Even G2",
+  "description": "Monitor and control your Tesla from your Even G2 glasses. View charge status, climate, and send commands via touchpad gestures.",
+  "author": "nick",
+  "entrypoint": "index.html",
+  "permissions": {
+    "network": [
+      "*"
+    ]
+  }
+}

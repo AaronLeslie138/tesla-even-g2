@@ -5,7 +5,9 @@
     "dev": "vite --host 0.0.0.0 --port 5173",
     "server": "npm --prefix server run dev",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "qr": "evenhub qr --http --port 5173",
+    "pack": "npm run build && evenhub pack app.json dist -o tesla.ehpk"
   },
   "dependencies": {
     "@evenrealities/even_hub_sdk": "^0.0.7",
@@ -14,6 +16,7 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@evenrealities/evenhub-cli": "^0.1.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "typescript": "^5.9.3",

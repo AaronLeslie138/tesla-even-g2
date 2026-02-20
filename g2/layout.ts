@@ -6,6 +6,7 @@ export const FOOTER_HEIGHT = 34
 export const BODY_TOP = HEADER_HEIGHT + 4
 export const BODY_HEIGHT = DISPLAY_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT - 8
 
-export const MAP_WIDTH = 280
-export const MAP_HEIGHT = BODY_HEIGHT
+export const MAP_WIDTH = 200
+export const MAP_HEIGHT = 100
+export const MAP_TOP = BODY_TOP + Math.round((BODY_HEIGHT - 100) / 2)
 export const TEXT_WIDTH = DISPLAY_WIDTH - MAP_WIDTH - 8
