@@ -12,7 +12,7 @@ function tessieUrl(path: string, token: string): string {
   return `https://api.tessie.com${path}?access_token=${token}`
 }
 
-let vin: string | null = null
+const vinByToken = new Map<string, string>()
 
 async function discoverVin(token: string): Promise<string> {
   const res = await fetch(tessieUrl('/vehicles', token))
@@ -21,6 +21,14 @@ async function discoverVin(token: string): Promise<string> {
   const first = data.results?.[0]
   if (!first) throw new Error('No vehicles found on this Tessie account')
   return first.vin
+}
+
+async function getVin(token: string): Promise<string> {
+  if (!vinByToken.has(token)) {
+    vinByToken.set(token, await discoverVin(token))
+    console.log(`Discovered VIN for token ...${token.slice(-4)}`)
+  }
+  return vinByToken.get(token)!
 }
 
 // --- OSM tile math ---
@@ -142,10 +150,7 @@ app.use('/*', cors({ origin: '*' }))
 app.get('/api/state', async (c) => {
   const token = getToken(c)
   if (!token) return c.json({ error: 'No Tessie token provided' }, 401)
-  if (!vin) {
-    vin = await discoverVin(token)
-    console.log(`Discovered VIN: ${vin}`)
-  }
+  const vin = await getVin(token)
   const res = await fetch(tessieUrl(`/${vin}/state`, token))
   const data = await res.json()
   return c.json(data, res.status as 200)
@@ -154,10 +159,7 @@ app.get('/api/state', async (c) => {
 app.post('/api/command/:cmd', async (c) => {
   const token = getToken(c)
   if (!token) return c.json({ error: 'No Tessie token provided' }, 401)
-  if (!vin) {
-    vin = await discoverVin(token)
-    console.log(`Discovered VIN: ${vin}`)
-  }
+  const vin = await getVin(token)
   const cmd = c.req.param('cmd')
   const path = cmd === 'wake' ? `/${vin}/wake` : `/${vin}/command/${cmd}`
   let url = tessieUrl(path, token)
@@ -176,10 +178,7 @@ app.post('/api/command/:cmd', async (c) => {
 app.get('/api/map', async (c) => {
   const token = getToken(c)
   if (!token) return c.json({ error: 'No Tessie token provided' }, 401)
-  if (!vin) {
-    vin = await discoverVin(token)
-    console.log(`Discovered VIN: ${vin}`)
-  }
+  const vin = await getVin(token)
 
   const stateRes = await fetch(tessieUrl(`/${vin}/state`, token))
   if (!stateRes.ok) return c.json({ error: 'Failed to get vehicle state' }, 502)

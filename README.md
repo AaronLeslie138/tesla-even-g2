@@ -6,6 +6,12 @@ Tesla vehicle controls for [Even Realities G2](https://www.evenrealities.com/) s
 
 35+ commands across climate, charging, security, windows and more – all from your glasses. View battery, range, temperatures, charging and sentry status at a glance with a live map showing your car's location.
 
+### Use now
+
+Scan this QR code in the Even Realities app (Even Hub page) to use on your G2 glasses:
+
+<img src="qr.png" width="200" />
+
 ![Dashboard screenshot](screenshot.png)
 
 ## System architecture
@@ -143,3 +149,4 @@ The dashboard shows battery level, range, lock state and charging status in the 
 - **G2 frontend:** TypeScript + [Even Hub SDK](https://www.npmjs.com/package/@evenrealities/even_hub_sdk)
 - **Settings UI:** React + [@jappyjan/even-realities-ui](https://www.npmjs.com/package/@jappyjan/even-realities-ui)
 - **Vehicle API:** [Tessie](https://developer.tessie.com)
+- **Hosting:** [Vercel](https://vercel.com/) (serverless API + static frontend)

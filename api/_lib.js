@@ -1,4 +1,4 @@
-let vin = null
+const vinByToken = new Map()
 
 function tessieUrl(path, token) {
   return `https://api.tessie.com${path}?access_token=${token}`
@@ -14,8 +14,10 @@ async function discoverVin(token) {
 }
 
 async function getVin(token) {
-  if (!vin) vin = await discoverVin(token)
-  return vin
+  if (!vinByToken.has(token)) {
+    vinByToken.set(token, await discoverVin(token))
+  }
+  return vinByToken.get(token)
 }
 
 function getToken(req) {
