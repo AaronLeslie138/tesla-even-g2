@@ -1,5 +1,9 @@
 @import "../node_modules/@jappyjan/even-realities-ui/dist/even-realities-ui.css";
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
   font-family: system-ui, -apple-system, sans-serif;
   max-width: 480px;
@@ -11,6 +15,26 @@ body {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 4px;
+}
+
+#logo {
+  display: block;
+  margin: 16px auto;
+  width: 96px;
+  height: auto;
+}
+
+#subtitle {
+  color: var(--color-tc-2, #7b7b7b);
+  font-size: 1rem;
+  margin: 12px;
+  text-align: center;;
+  line-height: 1.4;
+}
+
+#subtitle a {
+  color: inherit;
+  text-decoration: underline;
 }
 
 #status {

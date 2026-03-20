@@ -23,13 +23,20 @@ export type VehicleState = {
 
 export type ActionParams = Record<string, string | number | boolean>
 
-export type Screen = 'dashboard' | 'menu' | 'loading' | 'confirmation'
+export type PendingAction = {
+  cmd: string
+  label: string
+  params?: ActionParams
+}
+
+export type Screen = 'dashboard' | 'menu' | 'loading' | 'confirmation' | 'confirm'
 
 export type State = {
   screen: Screen
   startupRendered: boolean
   vehicle: VehicleState | null
   confirmationMessage: string
+  pendingAction: PendingAction | null
 }
 
 export const state: State = {
@@ -37,6 +44,7 @@ export const state: State = {
   startupRendered: false,
   vehicle: null,
   confirmationMessage: '',
+  pendingAction: null,
 }
 
 export let bridge: EvenAppBridge | null = null

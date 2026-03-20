@@ -21,6 +21,7 @@ import {
   MAP_TOP,
   TEXT_WIDTH,
 } from './layout'
+import { resetSelectedIndex } from './events'
 import { state, bridge } from './state'
 import type { VehicleState } from './state'
 import { quickActions, resolveLabel, categories } from './actions'
@@ -38,11 +39,13 @@ async function rebuildPage(config: {
   if (!bridge) return
 
   if (!state.startupRendered) {
+    resetSelectedIndex()
     await bridge.createStartUpPageContainer(new CreateStartUpPageContainer(config))
     state.startupRendered = true
     return
   }
 
+  resetSelectedIndex()
   await bridge.rebuildPageContainer(new RebuildPageContainer(config))
 }
 
@@ -259,7 +262,38 @@ export async function showLoading(label: string): Promise<void> {
   })
 }
 
-// --- Confirmation screen ---
+// --- Pre-execution confirm screen ---
+
+export async function showConfirm(label: string): Promise<void> {
+  state.screen = 'confirm'
+
+  await rebuildPage({
+    containerTotalNum: 1,
+    listObject: [
+      new ListContainerProperty({
+        containerID: 1,
+        containerName: 'confirm',
+        xPosition: 0,
+        yPosition: 0,
+        width: DISPLAY_WIDTH,
+        height: DISPLAY_HEIGHT,
+        borderWidth: 1,
+        borderColor: 5,
+        borderRdaius: 4,
+        paddingLength: 4,
+        isEventCapture: 1,
+        itemContainer: new ListItemContainerProperty({
+          itemCount: 2,
+          itemWidth: DISPLAY_WIDTH - 10,
+          isItemSelectBorderEn: 1,
+          itemName: ['Cancel', `Confirm: ${label}`],
+        }),
+      }),
+    ],
+  })
+}
+
+// --- Post-execution confirmation screen ---
 
 export async function showConfirmation(message: string): Promise<void> {
   state.screen = 'confirmation'

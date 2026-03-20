@@ -5,6 +5,7 @@ export type SimpleAction = {
   label: string
   cmd: string
   params?: ActionParams
+  confirm?: boolean
 }
 
 export type ToggleAction = {
@@ -14,6 +15,7 @@ export type ToggleAction = {
   onCmd: string
   offCmd: string
   isOn: (v: VehicleState) => boolean
+  confirm?: boolean
 }
 
 export type SubMenuAction = {
@@ -133,11 +135,11 @@ export const categories: Category[] = [
   {
     label: 'Quick actions',
     items: [
-      { type: 'toggle', onLabel: 'Unlock', offLabel: 'Lock', onCmd: 'unlock', offCmd: 'lock', isOn: (v) => v.locked },
+      { type: 'toggle', onLabel: 'Unlock', offLabel: 'Lock', onCmd: 'unlock', offCmd: 'lock', isOn: (v) => v.locked, confirm: true },
       { type: 'toggle', onLabel: 'Climate off', offLabel: 'Climate on', onCmd: 'stop_climate', offCmd: 'start_climate', isOn: (v) => v.climateOn },
-      { type: 'command', label: 'Open frunk', cmd: 'open_front_trunk' },
-      { type: 'command', label: 'Open trunk', cmd: 'open_rear_trunk' },
-      { type: 'command', label: 'Flash lights', cmd: 'flash_lights' },
+      { type: 'command', label: 'Open frunk', cmd: 'activate_front_trunk', confirm: true },
+      { type: 'command', label: 'Open trunk', cmd: 'activate_rear_trunk', confirm: true },
+      { type: 'command', label: 'Flash lights', cmd: 'flash' },
       { type: 'command', label: 'Honk', cmd: 'honk' },
       { type: 'refresh', label: 'Refresh' },
     ],
@@ -170,7 +172,7 @@ export const categories: Category[] = [
       { type: 'toggle', onLabel: 'Valet off', offLabel: 'Valet on', onCmd: 'disable_valet', offCmd: 'enable_valet', isOn: (v) => v.valetMode },
       { type: 'command', label: 'Guest on', cmd: 'enable_guest' },
       { type: 'command', label: 'Guest off', cmd: 'disable_guest' },
-      { type: 'command', label: 'Keyless driving', cmd: 'remote_start' },
+      { type: 'command', label: 'Keyless driving', cmd: 'remote_start', confirm: true },
     ],
   },
   {

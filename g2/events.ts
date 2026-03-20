@@ -6,13 +6,31 @@ import type { ActionItem } from './actions'
 import * as navigation from './navigation'
 import { state } from './state'
 import type { ActionParams } from './state'
-import { showDashboard, showMenu, showLoading, showConfirmation } from './renderer'
+import { showDashboard, showMenu, showLoading, showConfirmation, showConfirm } from './renderer'
 
 // Forward declaration – set by app.ts to avoid circular import
 let refreshStateFn: () => Promise<void> = async () => {}
 
 export function setRefreshState(fn: () => Promise<void>): void {
   refreshStateFn = fn
+}
+
+// Track selected list index – hardware omits currentSelectItemIndex for index 0
+let selectedIndex = 0
+
+export function resetSelectedIndex(): void {
+  selectedIndex = 0
+}
+
+function resolveIndex(event: EvenHubEvent): number {
+  const le = event.listEvent
+  const idx = le?.currentSelectItemIndex
+  if (typeof idx === 'number' && idx >= 0) {
+    selectedIndex = idx
+    return idx
+  }
+  // Hardware omits index for item 0 – use tracked state
+  return selectedIndex
 }
 
 // --- Event normalisation ---
@@ -86,19 +104,24 @@ async function handleAction(item: ActionItem): Promise<void> {
   }
 
   const resolved = resolveCommand(item, state.vehicle)
-  if (resolved) {
-    const label = resolveLabel(item, state.vehicle)
-    await executeCommand(resolved.cmd, label, resolved.params)
+  if (!resolved) return
+
+  const label = resolveLabel(item, state.vehicle)
+
+  if ((item.type === 'command' || item.type === 'toggle') && item.confirm) {
+    state.pendingAction = { cmd: resolved.cmd, label, params: resolved.params }
+    await showConfirm(label)
+    return
   }
+
+  await executeCommand(resolved.cmd, label, resolved.params)
 }
 
 // --- Dashboard events ---
 
 export async function handleDashboardEvent(event: EvenHubEvent, eventType: OsEventTypeList | undefined): Promise<void> {
   if (eventType === OsEventTypeList.CLICK_EVENT) {
-    const le = event.listEvent
-    let idx = le?.currentSelectItemIndex
-    if (typeof idx !== 'number' || idx < 0) idx = 0
+    const idx = resolveIndex(event)
 
     const actions = quickActions()
     // Last item is "More >"
@@ -130,9 +153,7 @@ export async function handleMenuEvent(event: EvenHubEvent, eventType: OsEventTyp
 
   if (eventType !== OsEventTypeList.CLICK_EVENT) return
 
-  const le = event.listEvent
-  let idx = le?.currentSelectItemIndex
-  if (typeof idx !== 'number' || idx < 0) idx = 0
+  const idx = resolveIndex(event)
 
   // Index 0 is always "< Back"
   if (idx === 0) {
@@ -172,7 +193,29 @@ async function goBack(): Promise<void> {
   }
 }
 
-// --- Confirmation events ---
+// --- Pre-execution confirm events ---
+
+export async function handleConfirmEvent(event: EvenHubEvent, eventType: OsEventTypeList | undefined): Promise<void> {
+  if (eventType !== OsEventTypeList.CLICK_EVENT) return
+
+  const idx = resolveIndex(event)
+
+  const pending = state.pendingAction
+  state.pendingAction = null
+
+  if (idx === 1 && pending) {
+    await executeCommand(pending.cmd, pending.label, pending.params)
+  } else {
+    // Cancel – go back to previous screen
+    if (navigation.depth() === 0) {
+      await showDashboard()
+    } else {
+      await showMenu()
+    }
+  }
+}
+
+// --- Post-execution confirmation events ---
 
 export async function handleConfirmationEvent(): Promise<void> {
   await refreshStateFn()
@@ -190,6 +233,9 @@ export function onEvenHubEvent(event: EvenHubEvent): void {
       break
     case 'menu':
       void handleMenuEvent(event, eventType)
+      break
+    case 'confirm':
+      void handleConfirmEvent(event, eventType)
       break
     case 'confirmation':
       void handleConfirmationEvent()
