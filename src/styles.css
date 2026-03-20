@@ -1,43 +1,39 @@
-@import "../node_modules/@jappyjan/even-realities-ui/dist/even-realities-ui.css";
+@import "even-toolkit/web/theme-light.css";
+@import "even-toolkit/web/typography.css";
+@import "even-toolkit/web/utilities.css";
 
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
   max-width: 480px;
   margin: 0 auto;
-  padding: 16px;
+  padding: var(--spacing-card-margin);
+  -webkit-font-smoothing: antialiased;
 }
 
-#app h1 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 4px;
+a {
+  color: inherit;
+  text-decoration: underline;
 }
 
 #logo {
   display: block;
-  margin: 16px auto;
+  margin: var(--spacing-card-margin) auto;
   width: 96px;
   height: auto;
 }
 
 #subtitle {
-  color: var(--color-tc-2, #7b7b7b);
-  font-size: 1rem;
-  margin: 12px;
-  text-align: center;;
-  line-height: 1.4;
+  color: var(--color-text-dim);
+  text-align: center;
+  margin: 0 0 var(--spacing-section);
 }
 
-#subtitle a {
-  color: inherit;
-  text-decoration: underline;
-}
-
-#status {
-  color: var(--color-tc-2, #7b7b7b);
-  font-size: 0.875rem;
+#subtitle strong {
+  color: var(--color-text);
 }

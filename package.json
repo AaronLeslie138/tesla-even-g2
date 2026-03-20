@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@evenrealities/even_hub_sdk": "^0.0.7",
-    "@jappyjan/even-realities-ui": "^0.0.8",
+    "even-toolkit": "^1.0.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "sharp": "^0.34.5"

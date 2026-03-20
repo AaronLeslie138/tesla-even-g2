@@ -10,15 +10,14 @@
 <body>
 
 <div id="app">
-  <h1>Tesla G2</h1>
   <img id="logo" alt="Tesla">
-  <p id="subtitle"><strong>Full control of your Tesla vehicle</strong><br><br><small>This app requires tessie.com subscription.<br>The author is not affiliated with tessie.com.</small><br><br></p>
+  <p id="subtitle" class="text-normal-body"><strong class="text-vlarge-title">Full control of your Tesla vehicle</strong><br>This app requires tessie.com subscription.<br>The author is not affiliated with tessie.com.</p>
 
-  <button id="connectBtn">Connect Tesla</button>
-  <button id="actionBtn">Refresh</button>
+  <button id="connectBtn" style="display:none">Connect Tesla</button>
+  <button id="actionBtn" style="display:none">Refresh</button>
 
-  <div id="status">Tesla ready</div>
-  <pre id="event-log"></pre>
+  <div id="status" style="display:none">Tesla ready</div>
+  <pre id="event-log" style="display:none"></pre>
 </div>
 
 <script type="module" src="/src/main.ts"></script>

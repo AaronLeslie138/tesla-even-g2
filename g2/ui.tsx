@@ -1,15 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import teslaLogo from '../src/tesla.png'
 import { createRoot } from 'react-dom/client'
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  Text,
-  Input,
-  Button,
-} from '@jappyjan/even-realities-ui'
-
 import { checkConnection, getToken, setToken } from './api'
 
 function TokenAndStatus({ onStatusChange }: { onStatusChange: (valid: boolean) => void }) {
@@ -31,33 +22,50 @@ function TokenAndStatus({ onStatusChange }: { onStatusChange: (valid: boolean) =
     check()
   }
 
-  const statusColor = status === 'connected'
-    ? '#4BB954'
+  const dotColor = status === 'connected'
+    ? 'var(--color-positive)'
     : status === 'disconnected'
-      ? '#FF4535'
-      : '#7b7b7b'
-  const statusLabel = status === 'checking' ? 'Checking...' : status === 'connected' ? 'Token valid' : 'Token invalid'
+      ? 'var(--color-negative)'
+      : 'var(--color-text-muted)'
+
+  const statusLabel = status === 'checking'
+    ? 'Checking...'
+    : status === 'connected'
+      ? 'Token valid'
+      : 'Token invalid'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <Input
+    <>
+      <input
         type="password"
         value={token}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTokenValue(e.target.value)}
+        onChange={(e) => setTokenValue(e.target.value)}
         onBlur={handleBlur}
         placeholder="Enter your Tessie API token"
-        style={{ width: '100%', fontSize: '1rem' }}
+        style={{
+          height: 36,
+          width: '100%',
+          background: 'var(--color-input-bg)',
+          color: 'var(--color-text)',
+          border: 'none',
+          borderRadius: 'var(--radius-default)',
+          padding: '0 16px',
+          fontFamily: 'var(--font-body)',
+          outline: 'none',
+        }}
+        className="text-medium-body"
       />
       {token && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'var(--spacing-same)' }}>
           <span style={{
-            width: '8px', height: '8px', borderRadius: '50%',
-            backgroundColor: statusColor, display: 'inline-block',
+            width: 8, height: 8, borderRadius: '50%',
+            backgroundColor: dotColor, display: 'inline-block',
+            ...(status === 'connected' ? { animation: 'pulse-dot 2s ease-in-out infinite' } : {}),
           }} />
-          <Text variant="body-2" style={{ color: statusColor }}>{statusLabel}</Text>
+          <span className="text-subtitle" style={{ color: dotColor }}>{statusLabel}</span>
         </div>
       )}
-    </div>
+    </>
   )
 }
 
@@ -69,22 +77,43 @@ function SettingsPanel() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <Card style={{ width: '100%' }}>
-        <CardHeader>
-          <Text variant="title-1">Access token</Text>
-          <Text variant="body-2" style={{ color: 'var(--color-tc-2)', marginTop: '4px', display: 'block' }}>
-            Generate the token at <a target="_new" href="https://dash.tessie.com/settings/developer">tessie.com</a>. Stored locally.
-          </Text>
-        </CardHeader>
-        <CardContent>
-          <TokenAndStatus onStatusChange={setTokenValid} />
-        </CardContent>
-      </Card>
-<Button variant="primary" style={{ width: '100%', marginTop: '8px', fontSize: '1rem', padding: '12px', opacity: tokenValid ? 1 : 0.4, pointerEvents: tokenValid ? 'auto' : 'none' }} onClick={handleConnect}>
+    <>
+      <h2 className="text-large-title" style={{ margin: `0 0 var(--spacing-cross)` }}>Access token</h2>
+
+      <div style={{
+        background: 'var(--color-surface)',
+        borderRadius: 'var(--radius-default)',
+        padding: 'var(--spacing-card-margin)',
+      }}>
+        <p className="text-normal-body" style={{ color: 'var(--color-text-dim)', margin: `0 0 var(--spacing-cross)` }}>
+          Generate the token at <a target="_new" href="https://dash.tessie.com/settings/developer">tessie.com</a>. Stored locally.
+        </p>
+        <TokenAndStatus onStatusChange={setTokenValid} />
+      </div>
+
+      <button
+        className="text-medium-title"
+        disabled={!tokenValid}
+        onClick={handleConnect}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          height: 48,
+          border: 'none',
+          borderRadius: 'var(--radius-default)',
+          background: 'var(--color-accent)',
+          color: 'var(--color-text-highlight)',
+          cursor: 'pointer',
+          marginTop: 'var(--spacing-cross)',
+          opacity: tokenValid ? 1 : 0.4,
+          pointerEvents: tokenValid ? 'auto' : 'none',
+        }}
+      >
         Connect Tesla
-      </Button>
-    </div>
+      </button>
+    </>
   )
 }
 
@@ -107,7 +136,6 @@ export function initUI(): void {
   const eventLog = document.getElementById('event-log')
 
   const container = document.createElement('div')
-  container.style.margin = '16px 0'
 
   if (heading) heading.remove()
   if (logo) {
