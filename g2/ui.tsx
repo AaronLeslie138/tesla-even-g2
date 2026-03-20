@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import teslaLogo from '../src/tesla.png'
 import { createRoot } from 'react-dom/client'
 import {
   Card,
@@ -109,7 +110,10 @@ export function initUI(): void {
   container.style.margin = '16px 0'
 
   if (heading) heading.remove()
-  if (logo) app.appendChild(logo)
+  if (logo) {
+    ;(logo as HTMLImageElement).src = teslaLogo
+    app.appendChild(logo)
+  }
   if (subtitle) app.appendChild(subtitle)
   app.appendChild(container)
   if (status) {
